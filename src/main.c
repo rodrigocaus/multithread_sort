@@ -7,12 +7,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #define MAX_ENTRY 1000000
+#define MAX_THREADS 3
+#define MIN_LEN     4
+pthread_mutex_t trava;
+int threads_ativas;
 
+typedef struct {
+    long *v;
+    int i;
+    int j;
+} sortParam;
 
 void intercala(long *v, int i, int k, int j);
 void mergeSort(long *v, int i, int j);
+void mergeSortThreaded(long *v, int i, int j);
+void *callMergeSortThreaded(void *arg);
 
 int main() {
     long *entrada = calloc(MAX_ENTRY, sizeof(long));
@@ -20,7 +32,9 @@ int main() {
 
     while(scanf("%ld ", &(entrada[tam])) != EOF) tam++;
 
-    mergeSort(entrada, 0, tam-1);
+    threads_ativas = 0;
+
+    mergeSortThreaded(entrada, 0, tam-1);
 
     for(int i = 0; i < tam-1; i++) printf("%ld ", entrada[i]);
     printf("%ld\n", entrada[tam-1]);
@@ -72,4 +86,41 @@ void mergeSort(long *v, int i, int j) {
     mergeSort(v, i, m);
     mergeSort(v, m+1, j);
     intercala(v, i, m, j);
+}
+
+void mergeSortThreaded(long *v, int i, int j) {
+    if(i >= j)
+        return;
+    int m = (i+j)/2;
+    //Avaliamos se a cadeia é muito pequena ou se atingiu-se o limite de threads
+    if( j-i < MIN_LEN || threads_ativas >= MAX_THREADS) {
+        mergeSortThreaded(v, i, m);
+        mergeSortThreaded(v, m+1, j);
+    }
+    else {
+        sortParam arg;
+        pthread_t new_thread;
+        arg.v = v;
+        arg.i = i;
+        arg.j = m;
+
+        // Uma nova thread calcula a metade da esquerda
+        pthread_mutex_lock(&trava);
+        threads_ativas++;
+        pthread_mutex_unlock(&trava);
+        pthread_create(&new_thread, NULL, callMergeSortThreaded, &arg);
+        // Segue calculando a da direita
+        mergeSortThreaded(v, m+1, j);
+        //Junta os processos
+        pthread_join(new_thread, NULL);
+        pthread_mutex_lock(&trava);
+        threads_ativas--;
+        pthread_mutex_unlock(&trava);
+    }
+    intercala(v, i, m, j);
+}
+
+void *callMergeSortThreaded(void *arg) {
+    sortParam *p = (sortParam *) arg;
+    mergeSortThreaded(p->v, p->i, p->j);
 }
