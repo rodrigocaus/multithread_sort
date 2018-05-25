@@ -26,5 +26,5 @@ Entrada | Saida
 
 1. Vá diretamente ao conjunto de testes para verificar como tratar casos
    limítrofes ou mal-definidos.
-1. Lembre-se de seguir as [instruções de submissão](docs/instrucoes.md).
+1. Lembre-se de seguir as [instruções de submissão](doc/instrucoes.md).
 1. Se desejar, proponha novos casos de teste.
